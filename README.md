@@ -26,12 +26,3 @@ psdt: Puede contener errores de traducción, no esta totalmente probado, puede n
 * SIN VIRUS TROJANO (BOTNET) 
 * ARCHIVOS LIBERADOS (DESENCRIPTADOS)
 ```
-
-### Proyecto que estaba abandonado...
-```
-☆ https://t.me/admmanagerfree ☆
-
-☆ https://github.com/AAAAAEXQOSyIpN2JZ0ehUQ ☆
-
-**By: [ FULL SCRIPTS ⃘⃤꙰✰ ]**
-```
