@@ -177,7 +177,7 @@ if [[ -e $HOME/lista-arq ]]; then
    mv -f /etc/bash.bashrc.2 /etc/bash.bashrc
    echo "${SCPdir}/menu" > /usr/bin/menu && chmod +x /usr/bin/menu
    echo "${SCPdir}/menu" > /usr/bin/adm && chmod +x /usr/bin/adm
-   Key=AnthonySLT
+   Key=4nth0nySLT
    echo "$Key" > ${SCPdir}/key.txt
    inst_components
    [[ -d ${SCPinstal} ]] && rm -rf ${SCPinstal}   
