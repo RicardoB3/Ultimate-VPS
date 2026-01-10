@@ -11,7 +11,7 @@ if [ "$pid_badvpn" = "" ]; then
     wget -O /bin/badvpn-udpgw https://www.dropbox.com/s/nxf5s1lffmbikwq/badvpn-udpgw &>/dev/null
     chmod 777 /bin/badvpn-udpgw
     fi
-    screen -dmS screen /bin/badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 1000 --max-connections-for-client 10
+    screen -dmS screen /bin/badvpn-udpgw --listen-addr 127.0.0.1:7200 --max-clients 1000 --max-connections-for-client 10
     [[ "$(ps x | grep badvpn | grep -v grep | awk '{print $1}')" ]] && msg -ama "$(fun_trans "Sucesso")" || msg -ama "$(fun_trans "Falhou")"
 else
     msg -ama "$(fun_trans "Parando Badvpn")"
@@ -144,7 +144,7 @@ iptables -A OUTPUT -p udp --dport 53 -m state --state NEW -j ACCEPT' >> ./torren
 #Liberar DHCP
 echo 'iptables -A OUTPUT -p tcp --dport 67 -m state --state NEW -j ACCEPT
 iptables -A OUTPUT -p udp --dport 67 -m state --state NEW -j ACCEPT' >> ./torrent-adm
-#Liberando Serviços Ativos
+#Liberando ServiÃ§os Ativos
 list_ips=$(mportas|awk '{print $2}')
 while read PORT; do
 echo "iptables -A INPUT -p tcp --dport $PORT -j ACCEPT
