@@ -1,18 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
+import base64
 import sys
-import httplib
-from SocketServer import ThreadingMixIn
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+import http.client
+from socketserver import ThreadingMixIn
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Lock, Timer
-from cStringIO import StringIO
-from urlparse import urlsplit
+from io import BytesIO
+from urllib.parse import urlsplit
 import socket
 import select
 import gzip
 import zlib
 import re
 import traceback
+
+AUTH_USER = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else None
+AUTH_PASS = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else None
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -21,10 +25,10 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
     def handle_error(self, request, client_address):
         
-        print >>sys.stderr, '-'*40
-        print >>sys.stderr, 'Exception happened during processing of request from', client_address
+        print('-'*40, file=sys.stderr)
+        print('Exception happened during processing of request from', client_address, file=sys.stderr)
         traceback.print_exc()
-        print >>sys.stderr, '-'*40
+        print('-'*40, file=sys.stderr)
         
      
 class ThreadingHTTPServer6(ThreadingHTTPServer):
@@ -61,6 +65,9 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
             conn = socket.create_connection(address)
         except socket.error:
             return
+        if not self._check_auth():
+            return
+
         self.send_response(200, 'SOCKS5')
         self.send_header('Connection', 'close')
         self.end_headers()
@@ -96,6 +103,9 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
             reqbody = self.rfile.read(content_length)
         else:
             reqbody = None
+
+        if not self._check_auth():
+            return
 
         replaced_reqbody = self.request_handler(req, reqbody)
         if replaced_reqbody is True:
@@ -173,7 +183,7 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
                     raise
                 try:
                     res = conn.getresponse(buffering=True)
-                except httplib.BadStatusLine as e:
+                except http.client.BadStatusLine as e:
                     if e.line == "''":
                         
                         self.close_origin(origin)
@@ -199,9 +209,9 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
         if not conn:
             scheme, netloc = origin
             if scheme == 'https':
-                conn = httplib.HTTPSConnection(netloc)
+                conn = http.client.HTTPSConnection(netloc)
             else:
-                conn = httplib.HTTPConnection(netloc)
+                conn = http.client.HTTPConnection(netloc)
             self.reset_timer(origin)
             self.conn_table[origin]['connection'] = conn
         return conn
@@ -249,7 +259,7 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
 
     def decode_content_body(self, data, content_encoding):
         if content_encoding in ('gzip', 'x-gzip'):
-            io = StringIO(data)
+            io = BytesIO(data)
             with gzip.GzipFile(fileobj=io) as f:
                 body = f.read()
         elif content_encoding == 'deflate':
@@ -262,7 +272,7 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
 
     def encode_content_body(self, body, content_encoding):
         if content_encoding in ('gzip', 'x-gzip'):
-            io = StringIO()
+            io = BytesIO()
             with gzip.GzipFile(fileobj=io, mode='wb') as f:
                 f.write(body)
             data = io.getvalue()
@@ -277,6 +287,27 @@ class SimpleHTTPProxyHandler(BaseHTTPRequestHandler):
     def split_set_cookie_header(self, value):
         re_cookies = r'([^=]+=[^,;]+(?:;\s*Expires=[^,]+,[^,;]+|;[^,;]+)*)(?:,\s*)?'
         return re.findall(re_cookies, value, flags=re.IGNORECASE)
+
+    def _check_auth(self):
+        if not AUTH_USER or not AUTH_PASS:
+            return True
+        header = self.headers.get('Proxy-Authorization') or self.headers.get('Authorization')
+        if not header or not header.lower().startswith('basic '):
+            self.send_response(407, 'Proxy Authentication Required')
+            self.send_header('Proxy-Authenticate', 'Basic realm=\"Ultimate-VPS\"')
+            self.end_headers()
+            return False
+        try:
+            decoded = base64.b64decode(header.split(' ', 1)[1]).decode('utf-8', errors='ignore')
+        except Exception:
+            decoded = ''
+        user, _, password = decoded.partition(':')
+        if user != AUTH_USER or password != AUTH_PASS:
+            self.send_response(407, 'Proxy Authentication Required')
+            self.send_header('Proxy-Authenticate', 'Basic realm=\"Ultimate-VPS\"')
+            self.end_headers()
+            return False
+        return True
 
     def request_handler(self, req, reqbody):
         
@@ -304,10 +335,9 @@ def test(HandlerClass=SimpleHTTPProxyHandler, ServerClass=ThreadingHTTPServer, p
     httpd = ServerClass(server_address, HandlerClass)
 
     sa = httpd.socket.getsockname()
-    print "Serving HTTP on", sa[0], "port", sa[1], "..."
+    print("Serving HTTP on", sa[0], "port", sa[1], "...")
     httpd.serve_forever()
 
 
 if __name__ == '__main__':
     test()
-

@@ -16,5 +16,6 @@ dropbear.sh
 apacheon.sh
 openvpn.sh
 shadowsocks.sh
+hysteria.sh
 ssl.sh
 squid.sh
