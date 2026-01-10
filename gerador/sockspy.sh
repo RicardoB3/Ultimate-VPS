@@ -40,7 +40,7 @@ while read service; do
 [[ -z $service ]] && break
 echo "127.0.0.1:$(echo $service|cut -d' ' -f2)=$(echo $service|cut -d' ' -f1)" >> ${SCPinst}/pwd.pwd
 done <<< "$(mportas)"
-screen -dmS getpy python ${SCPinst}/PGet.py -b "0.0.0.0:$1" -p "${SCPinst}/pwd.pwd"
+screen -dmS getpy python3 ${SCPinst}/PGet.py -b "0.0.0.0:$1" -p "${SCPinst}/pwd.pwd"
  [[ "$(ps x | grep "PGet.py" | grep -v "grep" | awk -F "pts" '{print $1}')" ]] && {
  echo -e "$(fun_trans "Gettunel Iniciado com Sucesso")"
  msg -bar
@@ -78,7 +78,7 @@ pidproxy3=$(ps x | grep -w  "PDirect.py" | grep -v "grep" | awk -F "pts" '{print
 pidproxy4=$(ps x | grep -w  "POpen.py" | grep -v "grep" | awk -F "pts" '{print $1}') && [[ ! -z $pidproxy4 ]] && P4="\033[1;32mon" || P4="\033[1;31moff"
 pidproxy5=$(ps x | grep "PGet.py" | grep -v "grep" | awk -F "pts" '{print $1}') && [[ ! -z $pidproxy5 ]] && P5="\033[1;32mon" || P5="\033[1;31moff"
 pidproxy6=$(ps x | grep "scktcheck" | grep -v "grep" | awk -F "pts" '{print $1}') && [[ ! -z $pidproxy6 ]] && P6="\033[1;32mon" || P6="\033[1;31moff"
-echo -ne "\033[1;32m [1] > " && msg -azu "$(fun_trans "Socks Python SIMPLES)") $P1"
+echo -ne "\033[1;32m [1] > " && msg -azu "$(fun_trans "Socks Python SIMPLES") $P1"
 echo -ne "\033[1;32m [2] > " && msg -azu "$(fun_trans "Socks Python SEGURO") $P2"
 echo -ne "\033[1;32m [3] > " && msg -azu "$(fun_trans "Socks Python DIRETO") $P3"
 echo -ne "\033[1;32m [4] > " && msg -azu "$(fun_trans "Socks Python OPENVPN") $P4"
@@ -86,7 +86,7 @@ echo -ne "\033[1;32m [5] > " && msg -azu "$(fun_trans "Socks Python GETTUNEL") $
 echo -ne "\033[1;32m [6] > " && msg -azu "$(fun_trans "Socks Python TCP BYPASS") $P6"
 echo -ne "\033[1;32m [7] > " && msg -azu "$(fun_trans "PARAR TODOS SOCKETS PYTHON")"
 echo -ne "\033[1;32m [0] > " && msg -bra "$(fun_trans "VOLTAR")" && msg -bar
-IP=(meu_ip)
+IP=$(meu_ip)
 while [[ -z $portproxy || $portproxy != @(0|[1-7]) ]]; do
 msg -ne " $(fun_trans "Digite a Opcao"): " && read portproxy
 tput cuu1 && tput dl1
@@ -105,11 +105,26 @@ done
 msg -ama " $(fun_trans "Escolha Um Texto de Conexao")"
 msg -bar
 msg -ne " $(fun_trans "Digite o Texto de Status"): " && read texto_soket
+auth_user=""
+auth_pass=""
+auth_enable=""
+if [[ $portproxy = @(1|2|3|4) ]]; then
+msg -ama " $(fun_trans "Deseja habilitar usuario y contrasena")"
+msg -bar
+while [[ ${auth_enable} != @(s|S|n|N|y|Y) ]]; do
+read -p " [S/N]: " -e -i n auth_enable
+tput cuu1 && tput dl1
+done
+if [[ ${auth_enable} = @(s|S|y|Y) ]]; then
+msg -ne " $(fun_trans "Digite o Usuario"): " && read auth_user
+msg -ne " $(fun_trans "Digite a Senha"): " && read auth_pass
+fi
+fi
     case $portproxy in
-    1)screen -dmS screen python ${SCPinst}/PPub.py "$porta_socket" "$texto_soket";;
-    2)screen -dmS screen python3 ${SCPinst}/PPriv.py "$porta_socket" "$texto_soket" "$IP";;
-    3)screen -dmS screen python ${SCPinst}/PDirect.py "$porta_socket" "$texto_soket";;
-    4)screen -dmS screen python ${SCPinst}/POpen.py "$porta_socket" "$texto_soket";;
+    1)screen -dmS screen python3 ${SCPinst}/PPub.py "$porta_socket" "$texto_soket" "$auth_user" "$auth_pass";;
+    2)screen -dmS screen python3 ${SCPinst}/PPriv.py "$porta_socket" "$texto_soket" "$IP" "$auth_user" "$auth_pass";;
+    3)screen -dmS screen python3 ${SCPinst}/PDirect.py "$porta_socket" "$texto_soket" "$auth_user" "$auth_pass";;
+    4)screen -dmS screen python3 ${SCPinst}/POpen.py "$porta_socket" "$texto_soket" "$auth_user" "$auth_pass";;
     5)gettunel_fun "$porta_socket";;
     6)tcpbypass_fun "$porta_socket" "$texto_soket";;
     esac

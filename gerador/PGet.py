@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, time, getopt, socket, threading, base64
 
 
@@ -32,7 +34,7 @@ class Logger:
 
     def log(self, log):
         with Logger.logLock:
-            print log
+            print(log)
 
 		
 
@@ -73,7 +75,7 @@ class PasswordSet:
 
         if not self.masterKey == key:
             if hasattr(self, 'map'):
-                if self.map.has_key(target):
+                if target in self.map:
                     valid = key in self.map[target]
         else:
             valid = True
@@ -145,6 +147,7 @@ class ClientRequest:
 
         if not b:
             return None
+        b = b.decode('latin-1', errors='ignore')
 
         while count < ClientRequest.MAX_LEN_CLIENT_REQUEST:
             count += 1
@@ -157,6 +160,7 @@ class ClientRequest:
                 if not b:
                     break
 
+                b = b.decode('latin-1', errors='ignore')
                 line += b
 
                 if b == '\n':
@@ -166,6 +170,8 @@ class ClientRequest:
 
             if not b:
                 break
+
+            b = b.decode('latin-1', errors='ignore')
 
         if not b:
             return None
@@ -189,7 +195,7 @@ class ClientRequest:
 
     def readFully(self, n):
         count = 0
-        data = ''
+        data = b''
 
         while count < n:
             packet = self.socket.recv(n - count)
@@ -355,7 +361,7 @@ class AcceptClient(threading.Thread):
 
             if action is None:
                 self.log('client sends no action header', Logger.LOG_WARN)
-                self.socket.sendall('HTTP/1.1 400 NoActionHeader!\r\nServer: GetTunnelServer\r\n\r\n')
+                self.socket.sendall(b'HTTP/1.1 400 NoActionHeader!\r\nServer: GetTunnelServer\r\n\r\n')
                 return
 
             if action == AcceptClient.ACTION_CREATE:
@@ -365,14 +371,14 @@ class AcceptClient(threading.Thread):
                     passwd = self.getHeaderVal(head, AcceptClient.HEADER_PASS)
 
                     try:
-                        passwd = base64.b64decode(passwd)
+                        passwd = base64.b64decode(passwd).decode('utf-8', errors='ignore')
                     except:
                         passwd = None
                         pass
 
                     if passwd is None or not self.passwdSet.isValidKey(passwd, target):
                         self.log('client sends wrong key', Logger.LOG_WARN)
-                        self.socket.sendall('HTTP/1.1 403 Forbidden\r\nServer: GetTunnelServer\r\n\r\n')
+                        self.socket.sendall(b'HTTP/1.1 403 Forbidden\r\nServer: GetTunnelServer\r\n\r\n')
                         return
 
                 if target is not None and self.isValidHostPort(target):
@@ -381,12 +387,13 @@ class AcceptClient(threading.Thread):
                     client = Client(id, self.socket, target)
                     client.onCloseFunction = self.server.removeClient
                     self.server.addClient(client)
-                    self.socket.sendall('HTTP/1.1 200 '+ AcceptClient.MSG_CONNECTION_CREATED + '\r\nServer: GetTunnelServer\r\nX-Id: ' + str(id) + '\r\nContent-Type: text/plain\r\nContent-Length: 0\r\nConnection: Keep-Alive\r\n\r\n')
+                    response = 'HTTP/1.1 200 {msg}\r\nServer: GetTunnelServer\r\nX-Id: {id}\r\nContent-Type: text/plain\r\nContent-Length: 0\r\nConnection: Keep-Alive\r\n\r\n'.format(msg=AcceptClient.MSG_CONNECTION_CREATED, id=id)
+                    self.socket.sendall(response.encode('utf-8'))
                     self.log('connection created - ' + str(id), Logger.LOG_INFO)
                     needClose = False
                 else:
                     self.log('client sends no valid target', Logger.LOG_WARN)
-                    self.socket.sendall('HTTP/1.1 400 Target!\r\nServer: GetTunnelServer\r\n\r\n')
+                    self.socket.sendall(b'HTTP/1.1 400 Target!\r\nServer: GetTunnelServer\r\n\r\n')
 
             elif action == AcceptClient.ACTION_COMPLETE:
                 id = self.getHeaderVal(head, AcceptClient.HEADER_ID)
@@ -398,19 +405,20 @@ class AcceptClient(threading.Thread):
                         client.writeSocket = self.socket
 
                         self.log('connection completed - ' + str(id), Logger.LOG_INFO)
-                        self.socket.sendall('HTTP/1.1 200 ' + AcceptClient.MSG_CONNECTION_COMPLETED + '\r\nServer: GetTunnelServer\r\nConnection: Keep-Alive\r\n\r\n')
+                        response = 'HTTP/1.1 200 {msg}\r\nServer: GetTunnelServer\r\nConnection: Keep-Alive\r\n\r\n'.format(msg=AcceptClient.MSG_CONNECTION_COMPLETED)
+                        self.socket.sendall(response.encode('utf-8'))
 
                         client.start()
                         needClose = False
                     else:
                         self.log('client try to complete non existing connection', Logger.LOG_WARN)
-                        self.socket.sendall('HTTP/1.1 400 CreateFirst!\r\nServer: GetTunnelServer\r\n\r\n')
+                        self.socket.sendall(b'HTTP/1.1 400 CreateFirst!\r\nServer: GetTunnelServer\r\n\r\n')
                 else:
                     self.log('client sends no id header', Logger.LOG_WARN)
-                    self.socket.sendall('HTTP/1.1 400 NoID!\r\nServer: GetTunnelServer\r\n\r\n')
+                    self.socket.sendall(b'HTTP/1.1 400 NoID!\r\nServer: GetTunnelServer\r\n\r\n')
             else:
                 self.log('client sends invalid action', Logger.LOG_WARN)
-                self.socket.sendall('HTTP/1.1 400 InvalidAction!\r\nServer: GetTunnelServer\r\n\r\n')
+                self.socket.sendall(b'HTTP/1.1 400 InvalidAction!\r\nServer: GetTunnelServer\r\n\r\n')
 
         except Exception as e:
             self.log('connection error - ' + str(type(e)) + ' - ' + str(e), Logger.LOG_ERROR)
@@ -449,6 +457,7 @@ class AcceptClient(threading.Thread):
 
         if not b:
             return None
+        b = b.decode('latin-1', errors='ignore')
 
         while count < AcceptClient.MAX_QTD_BYTES:
             count += 1
@@ -461,6 +470,7 @@ class AcceptClient(threading.Thread):
                 if not b:
                     break
 
+                b = b.decode('latin-1', errors='ignore')
                 line += b
 
                 if b == '\n':
@@ -470,6 +480,8 @@ class AcceptClient(threading.Thread):
 
             if not b:
                 break
+
+            b = b.decode('latin-1', errors='ignore')
 
         if not b:
             return None
@@ -612,11 +624,11 @@ class Server(threading.Thread):
 
 
 def print_usage():
-    print '\nUsage  : python get.py -b listening -p pass'
-    print 'Ex.    : python get.py -b 0.0.0.0:80 -p pass123'
-    print '       : python get.py -b 0.0.0.0:80 -p passFile.pwd\n'
-    print '___Password file ex.:___'
-    print PasswordSet.FILE_EXEMPLE
+    print('\nUsage  : python get.py -b listening -p pass')
+    print('Ex.    : python get.py -b 0.0.0.0:80 -p pass123')
+    print('       : python get.py -b 0.0.0.0:80 -p passFile.pwd\n')
+    print('___Password file ex.:___')
+    print(PasswordSet.FILE_EXEMPLE)
 
 def parse_args(argv):
     global CONFIG_LISTENING
@@ -637,8 +649,8 @@ def parse_args(argv):
             CONFIG_PASS = arg
 
 def main():
-    print '\n-->GetTunnelPy - Server v.' + '25/06/2017' + '\n'
-    print '-->Listening: ' + CONFIG_LISTENING
+    print('\n-->GetTunnelPy - Server v.' + '25/06/2017' + '\n')
+    print('-->Listening: ' + CONFIG_LISTENING)
 
     pwdSet = None
 
@@ -649,21 +661,21 @@ def main():
             try:
                 isValidFile = pwdSet.parseFile(CONFIG_PASS)
             except IOError as e:
-                print '--#Error reading file: ' + str(type(e)) + ' - ' + str(e)
+                print('--#Error reading file: ' + str(type(e)) + ' - ' + str(e))
                 sys.exit()
 
             if not isValidFile:
-                print '--#Error on parsing file!\n'
+                print('--#Error on parsing file!\n')
                 print_usage()
                 return
 
-            print '-->Pass file: ' + CONFIG_PASS + '\n'
+            print('-->Pass file: ' + CONFIG_PASS + '\n')
         else:
             if (len(CONFIG_PASS) > 0):
-                print '-->Pass     : yes\n'
+                print('-->Pass     : yes\n')
                 pwdSet = PasswordSet(CONFIG_PASS)
             else:
-                print '-->Pass     : no\n'
+                print('-->Pass     : no\n')
 
     server = Server(CONFIG_LISTENING)
     server.passwdSet = pwdSet
@@ -673,7 +685,7 @@ def main():
         try:
             time.sleep(2)
         except KeyboardInterrupt:
-            print '<-> Stopping server...'
+            print('<-> Stopping server...')
             server.running = False
             break
 
