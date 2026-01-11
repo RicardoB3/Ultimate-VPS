@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bin _ Gen #OFC
-link_bin="https://www.dropbox.com/s/37psc5yx7060y22/generadorcc.py?dl=0"
+link_bin="https://raw.githubusercontent.com/4nth0nySLT/Ultimate-VPS/master/Install/generadorcc.py"
 [[ ! -e /usr/bin/generadorcc.py ]] && wget -O /usr/bin/generadorcc.py ${link_bin} > /dev/null && chmod +x /usr/bin/generadorcc.py
 msg -ama "$(fun_trans "GERADOR DE BINS OFICIAL")"
 msg -bar
